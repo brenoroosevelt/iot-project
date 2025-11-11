@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: mosquitto
+    ports:
+      - "1883:1883"     # MQTT
+      - "9001:9001"     # Websocket (opcional)
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./mosquitto/data:/mosquitto/data
+    restart: always
+
+  nodered:
+    image: nodered/node-red:latest
+    container_name: nodered
+    ports:
+      - "1880:1880"
+    volumes:
+      - ./nodered/data:/data
+      - ./shared:/data/shared       # <<--- compartilhado
+    environment:
+     - FLOWS_FILE=/data/flows.json
+    depends_on:
+      - mosquitto
+    restart: always
+
+  trainer:
+    build: ./python
+    container_name: trainer
+    volumes:
+      - ./python:/app
+      - ./shared:/app/shared
+    working_dir: /app
+    command: ["python", "treino.py"]
+    depends_on:
+      - mosquitto
+    restart: "no"
+
