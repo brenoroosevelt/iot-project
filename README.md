@@ -29,6 +29,7 @@ iot-project/
 |
 ├── nodered/
 │   └── data/                  # Configurações e fluxos persistentes do Node-RED
+|       └── flows.json         # fluxos 
 │
 └── python/
     ├── treino.py              # Script de treinamento de Machine Learning
