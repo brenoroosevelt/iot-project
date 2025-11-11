@@ -1,0 +1,5 @@
+# Ignora tudo dentro de nodered/data
+nodered/data/*
+
+# Mas mantém o fluxo principal
+!nodered/data/flows.json
