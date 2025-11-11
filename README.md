@@ -63,7 +63,7 @@ iot-project/
    - Node-RED (interface visual) em [http://localhost:1880](http://localhost:1880)
 
 3. **Gere o dataset:**
-   - No Node-RED, o fluxo grava os dados em `/data/shared/dataset.csv`.
+   - No Node-RED, o fluxo grava os dados em `/shared/dataset.csv`.
 
 4. **Execute o treinamento:**
    ```bash
@@ -76,21 +76,7 @@ iot-project/
 
 ---
 
-## 🧩 Próximos Passos
-
-- Integrar o treinamento automático a partir de eventos MQTT.  
-- Expor previsões por API HTTP no Node-RED.  
-- Adicionar logs e persistência de métricas de desempenho.
-
----
-
 ## 🧾 Licença
 
 Projeto de uso livre para fins acadêmicos, de pesquisa e desenvolvimento experimental.
 
----
-
-## 👨‍💻 Autor
-
-Desenvolvido por **[Seu Nome / UFMS]**  
-Ambiente experimental de integração **IoT + Machine Learning**.
