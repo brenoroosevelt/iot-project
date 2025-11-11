@@ -13,13 +13,13 @@ services:
     restart: always
 
   nodered:
-    image: nodered/node-red:latest
+    build: ./nodered
     container_name: nodered
     ports:
       - "1880:1880"
     volumes:
       - ./nodered/data:/data
-      - ./shared:/data/shared       # <<--- compartilhado
+      - ./shared:/shared       # <<--- compartilhado
     environment:
      - FLOWS_FILE=/data/flows.json
     depends_on:
