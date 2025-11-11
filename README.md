@@ -23,6 +23,10 @@ iot-project/
 │   ├── dataset.csv            # Dataset gerado pelo Node-RED
 │   └── models/                # Modelos treinados (.pkl)
 │
+├── mosquitto/
+│   ├── data/                  # Configurações e fluxos persistentes do Node-RED
+|   └── mosquitto.conf         # Configuração mosquitto
+|
 ├── nodered/
 │   └── data/                  # Configurações e fluxos persistentes do Node-RED
 │
