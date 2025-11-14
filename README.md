@@ -26,6 +26,7 @@ iot-project/
 ├── mosquitto/
 │   ├── data/                  # Configurações e fluxos persistentes do Node-RED
 |   └── mosquitto.conf         # Configuração mosquitto
+|   ├── certs/                 # Certificados
 |
 ├── nodered/
 │   └── data/                  # Configurações e fluxos persistentes do Node-RED
@@ -34,6 +35,7 @@ iot-project/
 └── python/
     ├── treino.py              # Script de treinamento de Machine Learning
     └── Dockerfile             # Configuração da imagem Python
+    ├── plots/                 # Gerar gráficos e novos models
 ```
 
 ---
@@ -74,6 +76,10 @@ iot-project/
    - O arquivo `dataset.csv` ficará em `./shared/`.
    - Os modelos treinados serão salvos em `./shared/models/`.
 
+6. **Gerando Gráficos**
+   ```bash
+   docker run --rm   -v "$(pwd)/python:/app"   -w /app   python:3.10-slim   bash -c "pip install matplotlib pandas && python plot_results.py"
+   ```
 ---
 
 ## 🧾 Licença
