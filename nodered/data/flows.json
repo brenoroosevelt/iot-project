@@ -1,48 +1,511 @@
 [
     {
-        "id": "cf925c8759eec5ed",
-        "type": "tab",
-        "label": "Fluxo 1",
-        "disabled": false,
-        "info": "",
-        "env": []
+        "id": "ed2c63a73378514e",
+        "type": "ui_button",
+        "z": "18bf5a9f7bddd623",
+        "name": "Férias ON",
+        "group": "c8b63ef178b90515",
+        "order": 1,
+        "width": 3,
+        "height": 1,
+        "passthru": false,
+        "label": "Férias ON",
+        "tooltip": "",
+        "payload": "true",
+        "payloadType": "bool",
+        "topic": "",
+        "x": 130,
+        "y": 40,
+        "wires": [
+            [
+                "a12f4d1b19c3b7c8"
+            ]
+        ]
     },
     {
-        "id": "b7ed1f05b85a7a7f",
-        "type": "ui_tab",
-        "name": "Home",
-        "icon": "dashboard"
+        "id": "07e20175c92f2a91",
+        "type": "ui_button",
+        "z": "18bf5a9f7bddd623",
+        "name": "Férias OFF",
+        "group": "c8b63ef178b90515",
+        "order": 2,
+        "width": 3,
+        "height": 1,
+        "passthru": false,
+        "label": "Férias OFF",
+        "tooltip": "",
+        "payload": "false",
+        "payloadType": "bool",
+        "topic": "",
+        "x": 130,
+        "y": 80,
+        "wires": [
+            [
+                "ed9a179fd2c587a5"
+            ]
+        ]
     },
     {
-        "id": "3013867b61704f90",
-        "type": "ui_tab",
-        "name": "Home",
-        "icon": "dashboard",
-        "disabled": false,
-        "hidden": false
+        "id": "a12f4d1b19c3b7c8",
+        "type": "change",
+        "z": "18bf5a9f7bddd623",
+        "name": "flow.ferias=true",
+        "rules": [
+            {
+                "t": "set",
+                "p": "ferias",
+                "pt": "flow",
+                "to": "true",
+                "tot": "bool"
+            }
+        ],
+        "x": 320,
+        "y": 40,
+        "wires": [
+            []
+        ]
     },
     {
-        "id": "95d649cd9333de87",
-        "type": "tls-config",
+        "id": "ed9a179fd2c587a5",
+        "type": "change",
+        "z": "18bf5a9f7bddd623",
+        "name": "flow.ferias=false",
+        "rules": [
+            {
+                "t": "set",
+                "p": "ferias",
+                "pt": "flow",
+                "to": "false",
+                "tot": "bool"
+            }
+        ],
+        "x": 320,
+        "y": 80,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "73a14c67d5c3dbb1",
+        "type": "inject",
+        "z": "18bf5a9f7bddd623",
+        "name": "Tick (2s)",
+        "props": [],
+        "repeat": "2",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 120,
+        "y": 140,
+        "wires": [
+            [
+                "5a77c5a5b6e0633a"
+            ]
+        ]
+    },
+    {
+        "id": "5a77c5a5b6e0633a",
+        "type": "function",
+        "z": "18bf5a9f7bddd623",
+        "name": "Clock",
+        "func": "const SPEED_MIN = 15;\nlet sim = flow.get('sim_dt');\nlet frame = flow.get('frame_id') || 0;\nconst year = (new Date()).getFullYear();\nif (!sim) sim = new Date(Date.UTC(year,0,1,0,0,0));\nelse sim = new Date(sim.getTime() + SPEED_MIN*60*1000);\nframe = (frame + 1) >>> 0;\nflow.set('sim_dt', sim);\nflow.set('frame_id', frame);\nnode.status({text: sim.toISOString()+\" | frame \"+frame});\nreturn [{payload:{sim:sim.toISOString(), frame}}];",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 290,
+        "y": 140,
+        "wires": [
+            [
+                "e79c6ef5636fe49c"
+            ]
+        ]
+    },
+    {
+        "id": "e958a6c4be245b0b",
+        "type": "function",
+        "z": "18bf5a9f7bddd623",
+        "name": "casa/data",
+        "func": "const sim = flow.get('sim_dt') || new Date();\nconst frame = flow.get('frame_id') || 0;\nmsg.topic = \"casa/data\";\nmsg.payload = sim.toISOString();\nmsg.parts = { id: \"frame_\"+frame, index: 0, count: 4 };\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 280,
+        "y": 260,
+        "wires": [
+            [
+                "1b10bba6ef1f2d63"
+            ]
+        ]
+    },
+    {
+        "id": "c2a8a25cc3de6bc5",
+        "type": "function",
+        "z": "18bf5a9f7bddd623",
+        "name": "casa/temperatura",
+        "func": "// function 2 - Temperatura (substitua o conteúdo do node)\nconst sim = flow.get('sim_dt') || new Date();\nconst frame = flow.get('frame_id') || 0;\n\n// Parâmetros da curva diária\n// Aumentei baseline e amplitude ligeiramente para termos mais pontos >20C\nconst BASE = 22.0;      // temperatura média (°C)\nconst AMP  = 10;       // amplitude do dia (°C) -> pico ~ BASE+AMP\nconst PEAK_HOUR = 15;   // hora do pico térmico\n\nconst hour = sim.getUTCHours(); // usamos UTC do relógio simulado\n// deslocamento para que o pico ocorra em PEAK_HOUR\nconst daily = BASE + AMP * Math.sin(2*Math.PI * (hour - PEAK_HOUR)/24);\n\n// reduzir ruído para comportamento mais estável\nconst noise = (Math.random()-0.5) * 2.5; // +/-1.25°C típico\nlet temp = Math.max(0, Math.min(40, daily + noise));\n\nmsg.topic = \"casa/temperatura\";\nmsg.payload = { valor: +temp.toFixed(2), unidade:\"°C\", hora: sim.toISOString() };\nflow.set(\"last_temp\", msg.payload.valor);\n\nmsg.parts = { id:\"frame_\"+frame, index:1, count:4 };\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 300,
+        "y": 300,
+        "wires": [
+            [
+                "1b10bba6ef1f2d63"
+            ]
+        ]
+    },
+    {
+        "id": "41c3cb874d2d4899",
+        "type": "function",
+        "z": "18bf5a9f7bddd623",
+        "name": "casa/humidade",
+        "func": "// function 4 - Humidade (substitua o conteúdo do node)\nconst sim = flow.get('sim_dt') || new Date();\nconst frame = flow.get('frame_id') || 0;\n\n// parâmetros da umidade: diminuir média para ficar menos propenso a ligar\nconst HUM_BASE = 40.0;   // média mais baixa\nconst HUM_AMP  = 20.0;    // variação diária\nconst PEAK_HOUR = 5;     // exemplo: madrugada mais úmida\n\nconst hour = sim.getUTCHours();\nconst daily = HUM_BASE + HUM_AMP * Math.sin(2*Math.PI * (hour - PEAK_HOUR)/24);\n\n// ruido moderado\nconst noise = (Math.random()-0.5) * 6.0; // +/-3%\nlet hum = Math.max(10, Math.min(80, daily + noise));\n\nmsg.topic = \"casa/humidade\";\nmsg.payload = { valor: +hum.toFixed(2), unidade:\"%\", hora: sim.toISOString() };\nflow.set(\"last_hum\", msg.payload.valor);\n\nmsg.parts = { id:\"frame_\"+frame, index:2, count:4 };\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 300,
+        "y": 340,
+        "wires": [
+            [
+                "1b10bba6ef1f2d63"
+            ]
+        ]
+    },
+    {
+        "id": "547869f5f2c1a273",
+        "type": "function",
+        "z": "18bf5a9f7bddd623",
+        "name": "casa/equipamento",
+        "func": "// function 3 - Soft modulation: reduz chance de ligar quando temp baixa (não bloqueia)\n// ----- parâmetros ajustáveis -----\nconst MIN_ON_CYCLES  = 4;\nconst MIN_OFF_CYCLES = 5;\n\nconst B0     = -1.2;   // viés\nconst B_TEMP = 0.12;   // sensibilidade direta à temp\nconst B_HUM  = 0.06;   // sensibilidade direta à hum\nconst B_WEND = 0.20;\nconst B_FER  = 0.30;\nconst B_PREV = 0.8;    // persistência (mantém continuidade)\n\nconst BONUS_T = 0.6;   // bônus extra se temp > TEMP_REF\nconst BONUS_H = 0.4;   // bônus extra se hum > HUM_REF\nconst CLAMP_MIN = 0.01, CLAMP_MAX = 0.99;\n\n// ----- modulação \"soft\" (ajustar para comportamento) -----\nconst TEMP_REF = 20.0;        // referência de temperatura considerada \"alta\"\nconst HUM_REF  = 50.0;        // referência de humidade considerada \"alta\"\nconst TEMP_PENALTY_MIN = 0.2; // fator mínimo aplicado ao probOn quando temp muito baixa (0.2 = 20% da prob)\nconst HUM_BONUS = 1.15;       // multiplicador quando hum > HUM_REF (ex.: 1.15 = +15%)\n\n// contexto simulado\nconst sim = flow.get('sim_dt') || new Date();\nconst frame = flow.get('frame_id') || 0;\nconst ferias = !!flow.get('ferias');\n\n// entradas\nlet temp = flow.get(\"last_temp\"); if (temp == null) temp = 18;\nlet hum  = flow.get(\"last_hum\");  if (hum  == null) hum  = 40;\n\nconst dow = sim.getUTCDay ? sim.getUTCDay() : sim.getDay(); // 0=Dom..6=Sáb\nconst weekend = (dow === 0 || dow === 6) ? 1 : 0;\n\n// histerese/persistência\nlet statusPrev = context.get(\"statusPrev\");\nif (typeof statusPrev === \"undefined\") statusPrev = 0;\nlet hold = context.get(\"hold\") || 0;\n\nlet statusNow, motivo=\"decisao\", probOn=null;\n\nif (hold > 0) {\n  // mantém estado enquanto dentro do hold\n  hold -= 1;\n  context.set(\"hold\", hold);\n  statusNow = statusPrev;\n  motivo = \"hold\";\n} else {\n  // calcula score (logística)\n  let score = B0\n    + B_TEMP * temp\n    + B_HUM  * hum\n    + B_WEND * weekend\n    + B_FER  * (ferias ? 1 : 0)\n    + B_PREV * (statusPrev ? 1 : -1);\n\n  if (temp > TEMP_REF) score += BONUS_T;\n  if (hum  > HUM_REF)  score += BONUS_H;\n\n  probOn = 1 / (1 + Math.exp(-score));\n  // modulação suave por temperatura:\n  // fator_temp varia linearmente entre TEMP_PENALTY_MIN (temp=0) e 1.0 (temp>=TEMP_REF)\n  const t = Math.max(0, Math.min(TEMP_REF, temp)); // clamp em [0, TEMP_REF]\n  const fator_temp = TEMP_PENALTY_MIN + (1 - TEMP_PENALTY_MIN) * (t / TEMP_REF);\n\n  // modulação por humidade (multiplicativa se acima do limiar)\n  const fator_hum = (hum > HUM_REF) ? HUM_BONUS : 1.0;\n\n  // aplicar modulações\n  probOn = probOn * fator_temp * fator_hum;\n\n  // garantir limites\n  probOn = Math.max(CLAMP_MIN, Math.min(CLAMP_MAX, probOn));\n\n  // sorteio e hold\n  const u = Math.random();\n  if (u < probOn) {\n    statusNow = 1;\n    hold = Math.floor(Math.random() * 3) + MIN_ON_CYCLES;\n  } else {\n    statusNow = 0;\n    hold = Math.floor(Math.random() * 3) + MIN_OFF_CYCLES;\n  }\n  context.set(\"hold\", hold);\n  motivo = \"decisao\";\n}\n\ncontext.set(\"statusPrev\", statusNow);\n\n// publica (inclui prob_on para inspeção)\nmsg.topic = \"casa/equipamento\";\nmsg.payload = {\n  id: \"equip01\",\n  status: statusNow ? \"ativo\" : \"inativo\",\n  hora: sim.toISOString(),\n  temp, hum, weekend: !!weekend, ferias: !!ferias,\n  prob_on: probOn === null ? null : +probOn.toFixed(3),\n  motivo\n};\n\nmsg.parts = { id: \"frame_\"+frame, index:3, count:4 };\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 320,
+        "y": 380,
+        "wires": [
+            [
+                "1b10bba6ef1f2d63"
+            ]
+        ]
+    },
+    {
+        "id": "23a72ec6b22e31b3",
+        "type": "ui_button",
+        "z": "18bf5a9f7bddd623",
         "name": "",
-        "cert": "",
-        "key": "",
-        "ca": "",
-        "certname": "",
-        "keyname": "",
-        "caname": "ca.crt",
-        "servername": "",
-        "verifyservercert": false,
-        "alpnprotocol": ""
+        "group": "30c1f315e7f0baff",
+        "order": 0,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "label": "Reiniciar",
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "",
+        "className": "",
+        "icon": "",
+        "payload": "open",
+        "payloadType": "str",
+        "topic": "simulacao",
+        "topicType": "str",
+        "x": 480,
+        "y": 220,
+        "wires": [
+            [
+                "1b10bba6ef1f2d63"
+            ]
+        ]
     },
     {
-        "id": "ea9e68225d55ac67",
-        "type": "global-config",
-        "env": [],
-        "modules": {
-            "node-red-dashboard": "3.6.6",
-            "node-red-contrib-simple-gate": "0.5.2"
-        }
+        "id": "0be575773b040151",
+        "type": "ui_button",
+        "z": "18bf5a9f7bddd623",
+        "name": "",
+        "group": "3ac67a01ba93cb39",
+        "order": 0,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "label": "Parar",
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "",
+        "className": "",
+        "icon": "",
+        "payload": "close",
+        "payloadType": "str",
+        "topic": "simulacao",
+        "topicType": "str",
+        "x": 490,
+        "y": 420,
+        "wires": [
+            [
+                "1b10bba6ef1f2d63"
+            ]
+        ]
+    },
+    {
+        "id": "1b10bba6ef1f2d63",
+        "type": "gate",
+        "z": "18bf5a9f7bddd623",
+        "name": "Gate",
+        "controlTopic": "simulacao",
+        "defaultState": "open",
+        "openCmd": "open",
+        "closeCmd": "close",
+        "toggleCmd": "toggle",
+        "defaultCmd": "drop",
+        "statusCmd": "status",
+        "persist": false,
+        "storeName": "memory",
+        "x": 610,
+        "y": 300,
+        "wires": [
+            [
+                "cb81293a134508d8"
+            ]
+        ]
+    },
+    {
+        "id": "cb81293a134508d8",
+        "type": "join",
+        "z": "18bf5a9f7bddd623",
+        "name": "Sincroniza 4 tópicos",
+        "mode": "custom",
+        "build": "object",
+        "property": "payload",
+        "propertyType": "msg",
+        "key": "topic",
+        "joiner": "\\n",
+        "joinerType": "str",
+        "useparts": true,
+        "accumulate": true,
+        "timeout": "8000",
+        "count": "4",
+        "reduceRight": false,
+        "reduceExp": "",
+        "reduceInit": "",
+        "reduceInitType": "",
+        "reduceFixup": "",
+        "x": 790,
+        "y": 300,
+        "wires": [
+            [
+                "501e2b930f61f24d"
+            ]
+        ]
+    },
+    {
+        "id": "501e2b930f61f24d",
+        "type": "change",
+        "z": "18bf5a9f7bddd623",
+        "name": "topic=casa/frame",
+        "rules": [
+            {
+                "t": "set",
+                "p": "topic",
+                "pt": "msg",
+                "to": "casa/frame",
+                "tot": "str"
+            }
+        ],
+        "x": 1030,
+        "y": 300,
+        "wires": [
+            [
+                "b98b1b78a19ccf6b"
+            ]
+        ]
+    },
+    {
+        "id": "b98b1b78a19ccf6b",
+        "type": "mqtt out",
+        "z": "18bf5a9f7bddd623",
+        "name": "MQTT out",
+        "topic": "",
+        "qos": "0",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "1e0e17ca71c51cf0",
+        "x": 1240,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "ca17b2e61d98d2e3",
+        "type": "mqtt in",
+        "z": "18bf5a9f7bddd623",
+        "name": "Assinante",
+        "topic": "casa/frame",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "1e0e17ca71c51cf0",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 180,
+        "y": 520,
+        "wires": [
+            [
+                "ef320df2a414acfc"
+            ]
+        ]
+    },
+    {
+        "id": "ef320df2a414acfc",
+        "type": "function",
+        "z": "18bf5a9f7bddd623",
+        "name": "Normaliza→CSV",
+        "func": "// ✅ Normalizador CSV definitivo (garante cabeçalho único e sem duplicadas)\nlet p = msg.payload || {};\nif (typeof p === 'string') { \n    try { p = JSON.parse(p); } \n    catch(e){ return null; } \n}\n\n// garante pacote completo do JOIN\nif (!p[\"casa/data\"] || !p[\"casa/temperatura\"] || !p[\"casa/humidade\"] || !p[\"casa/equipamento\"]) {\n    return null;\n}\n\n// monta registro\nfunction numOrBlank(v){ \n    if(v===undefined||v===null||v===\"\") return \"\"; \n    const n=Number(v); \n    return Number.isFinite(n)?n:\"\"; \n}\n\nconst ts = p[\"casa/data\"];\nconst d  = ts.substring(0,10);\n\n// impede duplicação\nconst lastTs = context.get('last_written_ts');\nif (lastTs === ts) return null;\ncontext.set('last_written_ts', ts);\n\n// define colunas\nconst cols = [\n  \"timestamp\",\"date\",\"temp\",\"temp_unit\",\"hum\",\"hum_unit\",\n  \"equip_id\",\"equip_status\",\"weekend\",\"ferias\",\"prob_on\"\n];\n\n// monta linha CSV\nconst row = {\n  timestamp: ts,\n  date: d,\n  temp: numOrBlank(p[\"casa/temperatura\"]?.valor),\n  temp_unit: p[\"casa/temperatura\"]?.unidade ?? \"\",\n  hum: numOrBlank(p[\"casa/humidade\"]?.valor),\n  hum_unit: p[\"casa/humidade\"]?.unidade ?? \"\",\n  equip_id: p[\"casa/equipamento\"]?.id ?? \"\",\n  equip_status: p[\"casa/equipamento\"]?.status ?? \"\",\n  weekend: p[\"casa/equipamento\"]?.weekend ? 1 : 0,\n  ferias: p[\"casa/equipamento\"]?.ferias ? 1 : 0,\n  prob_on: (p[\"casa/equipamento\"]?.prob_on ?? \"\").toString()\n};\n\nfunction toCSV(o, cs){ return cs.map(k => String(o[k] ?? '')).join(',') + '\\n'; }\n\n// caminho\nconst path = \"/shared/dataset.csv\";\n\n// escreve cabeçalho uma única vez\nif (!context.get('header_written')) {\n    context.set('header_written', true);\n    node.send({ filename: path, payload: cols.join(',') + '\\n' });\n}\n\nnode.warn(`Salvando novo registro em: ${path}`);\n\n// envia linha de dados\nreturn { filename: path, payload: toCSV(row, cols) };\n",
+        "outputs": 2,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 520,
+        "wires": [
+            [
+                "c703d1ffb30a26a1"
+            ],
+            [
+                "c703d1ffb30a26a1"
+            ]
+        ]
+    },
+    {
+        "id": "c703d1ffb30a26a1",
+        "type": "file",
+        "z": "18bf5a9f7bddd623",
+        "name": "Dataset",
+        "filename": "filename",
+        "filenameType": "msg",
+        "appendNewline": false,
+        "createDir": true,
+        "overwriteFile": "false",
+        "encoding": "utf8",
+        "x": 640,
+        "y": 520,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "a7cc2177d2e99628",
+        "type": "debug",
+        "z": "18bf5a9f7bddd623",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": true,
+        "tostatus": true,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "payload",
+        "statusType": "auto",
+        "x": 1030,
+        "y": 580,
+        "wires": []
+    },
+    {
+        "id": "e79c6ef5636fe49c",
+        "type": "link out",
+        "z": "18bf5a9f7bddd623",
+        "name": "fan-out clock",
+        "mode": "link",
+        "links": [
+            "f601630dc2a7ac66",
+            "a2bc60ef1be6e323",
+            "85191d21c203b333",
+            "f07d1d75adfb5ed1"
+        ],
+        "x": 405,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "f601630dc2a7ac66",
+        "type": "link in",
+        "z": "18bf5a9f7bddd623",
+        "name": "IN→data",
+        "links": [
+            "e79c6ef5636fe49c"
+        ],
+        "x": 85,
+        "y": 260,
+        "wires": [
+            [
+                "e958a6c4be245b0b"
+            ]
+        ]
+    },
+    {
+        "id": "a2bc60ef1be6e323",
+        "type": "link in",
+        "z": "18bf5a9f7bddd623",
+        "name": "IN→temp",
+        "links": [
+            "e79c6ef5636fe49c"
+        ],
+        "x": 85,
+        "y": 300,
+        "wires": [
+            [
+                "c2a8a25cc3de6bc5"
+            ]
+        ]
+    },
+    {
+        "id": "85191d21c203b333",
+        "type": "link in",
+        "z": "18bf5a9f7bddd623",
+        "name": "IN→hum",
+        "links": [
+            "e79c6ef5636fe49c"
+        ],
+        "x": 85,
+        "y": 340,
+        "wires": [
+            [
+                "41c3cb874d2d4899"
+            ]
+        ]
+    },
+    {
+        "id": "f07d1d75adfb5ed1",
+        "type": "link in",
+        "z": "18bf5a9f7bddd623",
+        "name": "IN→equip",
+        "links": [
+            "e79c6ef5636fe49c"
+        ],
+        "x": 85,
+        "y": 380,
+        "wires": [
+            [
+                "547869f5f2c1a273"
+            ]
+        ]
     },
     {
         "id": "c8b63ef178b90515",
@@ -76,15 +539,15 @@
         "className": ""
     },
     {
-        "id": "1196d0883232ad18",
+        "id": "1e0e17ca71c51cf0",
         "type": "mqtt-broker",
-        "name": "Broker",
+        "name": "TLS",
         "broker": "mosquitto",
-        "port": "1883",
-        "tls": "95d649cd9333de87",
+        "port": "8883",
+        "tls": "",
         "clientid": "",
         "autoConnect": true,
-        "usetls": false,
+        "usetls": true,
         "protocolVersion": 4,
         "keepalive": 60,
         "cleansession": true,
@@ -108,541 +571,26 @@
         "sessionExpiry": ""
     },
     {
-        "id": "7c964d5237d149be",
-        "type": "ui_base",
-        "theme": {
-            "name": "theme-light",
-            "lightTheme": {
-                "default": "#0094CE",
-                "baseColor": "#0094CE",
-                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif",
-                "edited": true,
-                "reset": false
-            },
-            "darkTheme": {
-                "default": "#097479",
-                "baseColor": "#097479",
-                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif",
-                "edited": false
-            },
-            "customTheme": {
-                "name": "Untitled Theme 1",
-                "default": "#4B7930",
-                "baseColor": "#4B7930",
-                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif"
-            },
-            "themeState": {
-                "base-color": {
-                    "default": "#0094CE",
-                    "value": "#0094CE",
-                    "edited": false
-                },
-                "page-titlebar-backgroundColor": {
-                    "value": "#0094CE",
-                    "edited": false
-                },
-                "page-backgroundColor": {
-                    "value": "#fafafa",
-                    "edited": false
-                },
-                "page-sidebar-backgroundColor": {
-                    "value": "#ffffff",
-                    "edited": false
-                },
-                "group-textColor": {
-                    "value": "#1bbfff",
-                    "edited": false
-                },
-                "group-borderColor": {
-                    "value": "#ffffff",
-                    "edited": false
-                },
-                "group-backgroundColor": {
-                    "value": "#ffffff",
-                    "edited": false
-                },
-                "widget-textColor": {
-                    "value": "#111111",
-                    "edited": false
-                },
-                "widget-backgroundColor": {
-                    "value": "#0094ce",
-                    "edited": false
-                },
-                "widget-borderColor": {
-                    "value": "#ffffff",
-                    "edited": false
-                },
-                "base-font": {
-                    "value": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif"
-                }
-            },
-            "angularTheme": {
-                "primary": "indigo",
-                "accents": "blue",
-                "warn": "red",
-                "background": "grey",
-                "palette": "light"
-            }
-        },
-        "site": {
-            "name": "Node-RED Dashboard",
-            "hideToolbar": "false",
-            "allowSwipe": "false",
-            "lockMenu": "false",
-            "allowTempTheme": "true",
-            "dateFormat": "DD/MM/YYYY",
-            "sizes": {
-                "sx": 48,
-                "sy": 48,
-                "gx": 6,
-                "gy": 6,
-                "cx": 6,
-                "cy": 6,
-                "px": 0,
-                "py": 0
-            }
+        "id": "b7ed1f05b85a7a7f",
+        "type": "ui_tab",
+        "name": "Home",
+        "icon": "dashboard"
+    },
+    {
+        "id": "3013867b61704f90",
+        "type": "ui_tab",
+        "name": "Home",
+        "icon": "dashboard",
+        "disabled": false,
+        "hidden": false
+    },
+    {
+        "id": "cbb59548df8d2b90",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-dashboard": "3.6.6",
+            "node-red-contrib-simple-gate": "0.5.2"
         }
-    },
-    {
-        "id": "ed2c63a73378514e",
-        "type": "ui_button",
-        "z": "cf925c8759eec5ed",
-        "name": "Férias ON",
-        "group": "c8b63ef178b90515",
-        "order": 1,
-        "width": 3,
-        "height": 1,
-        "passthru": false,
-        "label": "Férias ON",
-        "tooltip": "",
-        "payload": "true",
-        "payloadType": "bool",
-        "topic": "",
-        "x": 130,
-        "y": 40,
-        "wires": [
-            [
-                "a12f4d1b19c3b7c8"
-            ]
-        ]
-    },
-    {
-        "id": "07e20175c92f2a91",
-        "type": "ui_button",
-        "z": "cf925c8759eec5ed",
-        "name": "Férias OFF",
-        "group": "c8b63ef178b90515",
-        "order": 2,
-        "width": 3,
-        "height": 1,
-        "passthru": false,
-        "label": "Férias OFF",
-        "tooltip": "",
-        "payload": "false",
-        "payloadType": "bool",
-        "topic": "",
-        "x": 130,
-        "y": 80,
-        "wires": [
-            [
-                "ed9a179fd2c587a5"
-            ]
-        ]
-    },
-    {
-        "id": "a12f4d1b19c3b7c8",
-        "type": "change",
-        "z": "cf925c8759eec5ed",
-        "name": "flow.ferias=true",
-        "rules": [
-            {
-                "t": "set",
-                "p": "ferias",
-                "pt": "flow",
-                "to": "true",
-                "tot": "bool"
-            }
-        ],
-        "x": 320,
-        "y": 40,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "ed9a179fd2c587a5",
-        "type": "change",
-        "z": "cf925c8759eec5ed",
-        "name": "flow.ferias=false",
-        "rules": [
-            {
-                "t": "set",
-                "p": "ferias",
-                "pt": "flow",
-                "to": "false",
-                "tot": "bool"
-            }
-        ],
-        "x": 320,
-        "y": 80,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "73a14c67d5c3dbb1",
-        "type": "inject",
-        "z": "cf925c8759eec5ed",
-        "name": "Tick (2s)",
-        "props": [],
-        "repeat": "2",
-        "once": false,
-        "onceDelay": 0.1,
-        "topic": "",
-        "x": 120,
-        "y": 140,
-        "wires": [
-            [
-                "5a77c5a5b6e0633a"
-            ]
-        ]
-    },
-    {
-        "id": "5a77c5a5b6e0633a",
-        "type": "function",
-        "z": "cf925c8759eec5ed",
-        "name": "Clock",
-        "func": "const SPEED_MIN = 15;\nlet sim = flow.get('sim_dt');\nlet frame = flow.get('frame_id') || 0;\nconst year = (new Date()).getFullYear();\nif (!sim) sim = new Date(Date.UTC(year,0,1,0,0,0));\nelse sim = new Date(sim.getTime() + SPEED_MIN*60*1000);\nframe = (frame + 1) >>> 0;\nflow.set('sim_dt', sim);\nflow.set('frame_id', frame);\nnode.status({text: sim.toISOString()+\" | frame \"+frame});\nreturn [{payload:{sim:sim.toISOString(), frame}}];",
-        "outputs": 1,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 290,
-        "y": 140,
-        "wires": [
-            [
-                "5936e98d4f6fc0d4"
-            ]
-        ]
-    },
-    {
-        "id": "5936e98d4f6fc0d4",
-        "type": "link out",
-        "z": "cf925c8759eec5ed",
-        "name": "fan-out clock",
-        "mode": "link",
-        "links": [],
-        "x": 405,
-        "y": 140,
-        "wires": []
-    },
-    {
-        "id": "e958a6c4be245b0b",
-        "type": "function",
-        "z": "cf925c8759eec5ed",
-        "name": "casa/data",
-        "func": "const sim = flow.get('sim_dt') || new Date();\nconst frame = flow.get('frame_id') || 0;\nmsg.topic = \"casa/data\";\nmsg.payload = sim.toISOString();\nmsg.parts = { id: \"frame_\"+frame, index: 0, count: 4 };\nreturn msg;",
-        "outputs": 1,
-        "timeout": "",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 280,
-        "y": 260,
-        "wires": [
-            [
-                "1b10bba6ef1f2d63"
-            ]
-        ]
-    },
-    {
-        "id": "c2a8a25cc3de6bc5",
-        "type": "function",
-        "z": "cf925c8759eec5ed",
-        "name": "casa/temperatura",
-        "func": "// Temperatura mais baixa em média\n// — baseline menor, amplitude menor, ruído menor\n// — viés sazonal simples (inverno -3 °C, verão +2 °C)\n\nconst sim   = flow.get('sim_dt') || new Date();\nconst frame = flow.get('frame_id') || 0;\n\nconst hour = new Date(sim).getUTCHours();\nconst mon  = new Date(sim).getUTCMonth(); // 0..11\n\n// viés sazonal (ajuste livre)\nlet seasonBias = 0;\nif ([11,0,1].includes(mon)) seasonBias = -3;   // dez-jan-fev: mais frio\nelse if ([5,6,7].includes(mon)) seasonBias = +2; // jun-jul-ago: mais quente (ajuste se quiser clima local)\n\n// parâmetros mais “contidos”\nconst base = 17 + seasonBias;             // antes era ~20–22\nconst amp  = 5;                           // antes 10\nconst noise = (Math.random() - 0.5) * 4;  // antes até 6\n\n// pico por volta de 14h (seno deslocado)\nconst daily = base + amp * Math.sin(2*Math.PI * (hour - 14) / 24);\nlet temp = daily + noise;\n\n// limites mais baixos\ntemp = Math.max(5, Math.min(33, temp));\n\nmsg.topic = \"casa/temperatura\";\nmsg.payload = { valor:+temp.toFixed(2), unidade:\"°C\", hora:sim.toISOString() };\nflow.set(\"last_temp\", msg.payload.valor);\n\n// sincronismo do JOIN\nmsg.parts = { id: \"frame_\"+frame, index: 1, count: 4 };\nreturn msg;\n",
-        "outputs": 1,
-        "timeout": "",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 300,
-        "y": 300,
-        "wires": [
-            [
-                "1b10bba6ef1f2d63"
-            ]
-        ]
-    },
-    {
-        "id": "41c3cb874d2d4899",
-        "type": "function",
-        "z": "cf925c8759eec5ed",
-        "name": "casa/humidade",
-        "func": "// Humidade com média mais baixa\n// — baseline menor, amplitude menor, ruído menor\n// — viés sazonal leve (inverno -5%)\n\nconst sim   = flow.get('sim_dt') || new Date();\nconst frame = flow.get('frame_id') || 0;\n\nconst hour = new Date(sim).getUTCHours();\nconst mon  = new Date(sim).getUTCMonth(); // 0..11\n\nlet seasonBiasHum = 0;\nif ([11,0,1].includes(mon)) seasonBiasHum = -5; // inverno mais seco\n// se quiser, pode pôr +3% no verão: else if ([5,6,7].includes(mon)) seasonBiasHum = +3;\n\nconst baseHum = 45 + seasonBiasHum;           // antes ~55\nconst ampHum  = 8;                             // antes 10\nconst noise   = (Math.random() - 0.5) * 8;     // antes 10\n\n// de dia um pouco mais seco\nconst daily = baseHum - ampHum * Math.sin(2*Math.PI * (hour - 14) / 24);\nlet hum = daily + noise;\n\n// limites mais secos\nhum = Math.max(20, Math.min(70, hum));\n\nmsg.topic = \"casa/humidade\";\nmsg.payload = { valor:+hum.toFixed(2), unidade:\"%\", hora:sim.toISOString() };\nflow.set(\"last_hum\", msg.payload.valor);\n\nmsg.parts = { id: \"frame_\"+frame, index: 2, count: 4 };\nreturn msg;\n",
-        "outputs": 1,
-        "timeout": "",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 300,
-        "y": 340,
-        "wires": [
-            [
-                "1b10bba6ef1f2d63"
-            ]
-        ]
-    },
-    {
-        "id": "547869f5f2c1a273",
-        "type": "function",
-        "z": "cf925c8759eec5ed",
-        "name": "casa/equipamento",
-        "func": "// ---------- parâmetros p/ equilibrar ON/OFF ----------\nconst MIN_ON_CYCLES  = 3;\nconst MIN_OFF_CYCLES = 9;    // ↑ fica bem mais tempo desligado\n\n// pesos base mais fracos (antes estavam muito altos)\nconst B0     = -3.4;         // baseline bem negativo\nconst B_TEMP = 0.03;         // 0.10 -> 0.03\nconst B_HUM  = 0.01;         // 0.06 -> 0.01\nconst B_WEND = 0.10;         // fim de semana ajuda um pouco\nconst B_FER  = -0.30;        // férias ↓ usa menos (ajuste como preferir)\nconst B_PREV = 0.20;         // persistência menor\n\n// bônus/penalidades de limiar\nconst BONUS_T_HOT  = 0.50;   // temp > 26°C\nconst BONUS_H_WET  = 0.35;   // hum > 65%\nconst PENAL_T_COLD = -0.40;  // temp < 18°C\nconst PENAL_H_DRY  = -0.25;  // hum < 45%\n\n// padrão diário (madrugada tende a OFF)\nconst B_SINH = 0.60;         // seno da hora (pico ~ 14h)\nconst B_COSH = -0.40;        // cosseno da hora (vales de madrugada)\n\nconst CLAMP_MIN = 0.05, CLAMP_MAX = 0.95;\n\n// ---------- contexto simulado ----------\nconst sim   = flow.get('sim_dt') || new Date();\nconst frame = flow.get('frame_id') || 0;\nconst ferias = !!flow.get('ferias');\n\n// entradas recentes\nlet temp = flow.get(\"last_temp\"); if (temp == null) temp = 24;\nlet hum  = flow.get(\"last_hum\");  if (hum  == null) hum  = 50;\n\n// use UTC para bater com timestamps \"Z\"\nconst d = new Date(sim);\nconst hour = d.getUTCHours();\nconst dow  = d.getUTCDay();                 // 0=Dom..6=Sáb\nconst weekend = (dow === 0 || dow === 6) ? 1 : 0;\nconst sinH = Math.sin(2*Math.PI*hour/24);\nconst cosH = Math.cos(2*Math.PI*hour/24);\n\n// histerese\nlet statusPrev = context.get(\"statusPrev\") || 0; // 1=ativo,0=inativo\nlet hold       = context.get(\"hold\") || 0;\nlet lastProbOn = context.get(\"lastProbOn\");\n\nlet statusNow, probOn = null, motivo = \"decisao\";\n\nif (hold > 0) {\n  hold -= 1;\n  context.set(\"hold\", hold);\n  statusNow = statusPrev;\n  probOn = (lastProbOn != null) ? lastProbOn : (statusPrev ? 0.7 : 0.3);\n  motivo = \"hold\";\n} else {\n  // escore logístico\n  let score = B0\n    + B_TEMP * temp\n    + B_HUM  * hum\n    + B_WEND * weekend\n    + B_FER  * (ferias ? 1 : 0)\n    + B_PREV * (statusPrev ? 1 : -1)\n    + B_SINH * sinH\n    + B_COSH * cosH;\n\n  // limiares\n  if (temp > 26) score += BONUS_T_HOT;\n  if (hum  > 65) score += BONUS_H_WET;\n  if (temp < 18) score += PENAL_T_COLD;\n  if (hum  < 45) score += PENAL_H_DRY;\n\n  probOn = 1 / (1 + Math.exp(-score));\n  probOn = Math.max(CLAMP_MIN, Math.min(CLAMP_MAX, probOn));\n\n  const u = Math.random();\n  if (u < probOn) {\n    statusNow = 1;\n    hold = Math.floor(Math.random()*3) + MIN_ON_CYCLES;   // 3..5\n  } else {\n    statusNow = 0;\n    hold = Math.floor(Math.random()*3) + MIN_OFF_CYCLES;  // 9..11\n  }\n  context.set(\"hold\", hold);\n}\n\ncontext.set(\"statusPrev\", statusNow);\ncontext.set(\"lastProbOn\", probOn);\n\n// publica\nmsg.topic = \"casa/equipamento\";\nmsg.payload = {\n  id: \"equip01\",\n  status: statusNow ? \"ativo\" : \"inativo\",\n  hora: sim.toISOString(),\n  temp, hum,\n  weekend: !!weekend,\n  ferias: !!ferias,\n  prob_on: +(+probOn).toFixed(3),\n  motivo\n};\nmsg.parts = { id: \"frame_\" + frame, index: 3, count: 4 };\nreturn msg;\n",
-        "outputs": 1,
-        "timeout": "",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 320,
-        "y": 380,
-        "wires": [
-            [
-                "1b10bba6ef1f2d63"
-            ]
-        ]
-    },
-    {
-        "id": "23a72ec6b22e31b3",
-        "type": "ui_button",
-        "z": "cf925c8759eec5ed",
-        "name": "",
-        "group": "30c1f315e7f0baff",
-        "order": 0,
-        "width": 0,
-        "height": 0,
-        "passthru": false,
-        "label": "Reiniciar",
-        "tooltip": "",
-        "color": "",
-        "bgcolor": "",
-        "className": "",
-        "icon": "",
-        "payload": "open",
-        "payloadType": "str",
-        "topic": "simulacao",
-        "topicType": "str",
-        "x": 480,
-        "y": 220,
-        "wires": [
-            [
-                "1b10bba6ef1f2d63"
-            ]
-        ]
-    },
-    {
-        "id": "0be575773b040151",
-        "type": "ui_button",
-        "z": "cf925c8759eec5ed",
-        "name": "",
-        "group": "3ac67a01ba93cb39",
-        "order": 0,
-        "width": 0,
-        "height": 0,
-        "passthru": false,
-        "label": "Parar",
-        "tooltip": "",
-        "color": "",
-        "bgcolor": "",
-        "className": "",
-        "icon": "",
-        "payload": "close",
-        "payloadType": "str",
-        "topic": "simulacao",
-        "topicType": "str",
-        "x": 490,
-        "y": 420,
-        "wires": [
-            [
-                "1b10bba6ef1f2d63"
-            ]
-        ]
-    },
-    {
-        "id": "1b10bba6ef1f2d63",
-        "type": "gate",
-        "z": "cf925c8759eec5ed",
-        "name": "Gate",
-        "controlTopic": "simulacao",
-        "defaultState": "open",
-        "openCmd": "open",
-        "closeCmd": "close",
-        "toggleCmd": "toggle",
-        "defaultCmd": "drop",
-        "statusCmd": "status",
-        "persist": false,
-        "storeName": "memory",
-        "x": 610,
-        "y": 300,
-        "wires": [
-            [
-                "cb81293a134508d8"
-            ]
-        ]
-    },
-    {
-        "id": "cb81293a134508d8",
-        "type": "join",
-        "z": "cf925c8759eec5ed",
-        "name": "Sincroniza 4 tópicos",
-        "mode": "custom",
-        "build": "object",
-        "property": "payload",
-        "propertyType": "msg",
-        "key": "topic",
-        "joiner": "\\n",
-        "joinerType": "str",
-        "useparts": true,
-        "accumulate": true,
-        "timeout": "8000",
-        "count": "4",
-        "reduceRight": false,
-        "reduceExp": "",
-        "reduceInit": "",
-        "reduceInitType": "",
-        "reduceFixup": "",
-        "x": 790,
-        "y": 300,
-        "wires": [
-            [
-                "501e2b930f61f24d"
-            ]
-        ]
-    },
-    {
-        "id": "501e2b930f61f24d",
-        "type": "change",
-        "z": "cf925c8759eec5ed",
-        "name": "topic=casa/frame",
-        "rules": [
-            {
-                "t": "set",
-                "p": "topic",
-                "pt": "msg",
-                "to": "casa/frame",
-                "tot": "str"
-            }
-        ],
-        "x": 1030,
-        "y": 300,
-        "wires": [
-            [
-                "b98b1b78a19ccf6b"
-            ]
-        ]
-    },
-    {
-        "id": "b98b1b78a19ccf6b",
-        "type": "mqtt out",
-        "z": "cf925c8759eec5ed",
-        "name": "MQTT out",
-        "topic": "",
-        "qos": "0",
-        "retain": "",
-        "respTopic": "",
-        "contentType": "",
-        "userProps": "",
-        "correl": "",
-        "expiry": "",
-        "broker": "1196d0883232ad18",
-        "x": 1220,
-        "y": 300,
-        "wires": []
-    },
-    {
-        "id": "ca17b2e61d98d2e3",
-        "type": "mqtt in",
-        "z": "cf925c8759eec5ed",
-        "name": "Assinante",
-        "topic": "casa/frame",
-        "qos": "0",
-        "datatype": "auto-detect",
-        "broker": "1196d0883232ad18",
-        "nl": false,
-        "rap": true,
-        "rh": 0,
-        "inputs": 0,
-        "x": 180,
-        "y": 520,
-        "wires": [
-            [
-                "ef320df2a414acfc"
-            ]
-        ]
-    },
-    {
-        "id": "ef320df2a414acfc",
-        "type": "function",
-        "z": "cf925c8759eec5ed",
-        "name": "Normaliza→CSV",
-        "func": "// ✅ Normalizador CSV definitivo (garante cabeçalho único e sem duplicadas)\nlet p = msg.payload || {};\nif (typeof p === 'string') { \n    try { p = JSON.parse(p); } \n    catch(e){ return null; } \n}\n\n// garante pacote completo do JOIN\nif (!p[\"casa/data\"] || !p[\"casa/temperatura\"] || !p[\"casa/humidade\"] || !p[\"casa/equipamento\"]) {\n    return null;\n}\n\n// monta registro\nfunction numOrBlank(v){ \n    if(v===undefined||v===null||v===\"\") return \"\"; \n    const n=Number(v); \n    return Number.isFinite(n)?n:\"\"; \n}\n\nconst ts = p[\"casa/data\"];\nconst d  = ts.substring(0,10);\n\n// impede duplicação\nconst lastTs = context.get('last_written_ts');\nif (lastTs === ts) return null;\ncontext.set('last_written_ts', ts);\n\n// define colunas\nconst cols = [\n  \"timestamp\",\"date\",\"temp\",\"temp_unit\",\"hum\",\"hum_unit\",\n  \"equip_id\",\"equip_status\",\"weekend\",\"ferias\",\"prob_on\"\n];\n\n// monta linha CSV\nconst row = {\n  timestamp: ts,\n  date: d,\n  temp: numOrBlank(p[\"casa/temperatura\"]?.valor),\n  temp_unit: p[\"casa/temperatura\"]?.unidade ?? \"\",\n  hum: numOrBlank(p[\"casa/humidade\"]?.valor),\n  hum_unit: p[\"casa/humidade\"]?.unidade ?? \"\",\n  equip_id: p[\"casa/equipamento\"]?.id ?? \"\",\n  equip_status: p[\"casa/equipamento\"]?.status ?? \"\",\n  weekend: p[\"casa/equipamento\"]?.weekend ? 1 : 0,\n  ferias: p[\"casa/equipamento\"]?.ferias ? 1 : 0,\n  prob_on: (p[\"casa/equipamento\"]?.prob_on ?? \"\").toString()\n};\n\nfunction toCSV(o, cs){ return cs.map(k => String(o[k] ?? '')).join(',') + '\\n'; }\n\n// caminho\nconst path = \"/shared/dataset.csv\";\n\n// escreve cabeçalho uma única vez\nif (!context.get('header_written')) {\n    context.set('header_written', true);\n    node.send({ filename: path, payload: cols.join(',') + '\\n' });\n}\n\nnode.warn(`Salvando novo registro em: ${path}`);\n\n// envia linha de dados\nreturn { filename: path, payload: toCSV(row, cols) };\n",
-        "outputs": 2,
-        "timeout": "",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 420,
-        "y": 520,
-        "wires": [
-            [
-                "c703d1ffb30a26a1"
-            ],
-            [
-                "c703d1ffb30a26a1"
-            ]
-        ]
-    },
-    {
-        "id": "c703d1ffb30a26a1",
-        "type": "file",
-        "z": "cf925c8759eec5ed",
-        "name": "Dataset",
-        "filename": "filename",
-        "filenameType": "msg",
-        "appendNewline": false,
-        "createDir": true,
-        "overwriteFile": "false",
-        "encoding": "utf8",
-        "x": 640,
-        "y": 520,
-        "wires": [
-            [
-                "a7cc2177d2e99628"
-            ]
-        ]
-    },
-    {
-        "id": "a7cc2177d2e99628",
-        "type": "debug",
-        "z": "cf925c8759eec5ed",
-        "name": "debug 1",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "payload",
-        "targetType": "msg",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 880,
-        "y": 520,
-        "wires": []
     }
 ]

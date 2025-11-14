@@ -24,7 +24,8 @@ try:
 except Exception:
     HAS_XGB = False
 
-DATA_PATH = "dataset.csv"
+#DATA_PATH = "dataset.csv"
+DATA_PATH = os.environ.get("DATASET_PATH", "shared/dataset.csv")
 
 EXPECTED_COLS = [
     "timestamp","date","temp","temp_unit","hum","hum_unit",
@@ -41,16 +42,24 @@ def _read_raw_csv(path):
     """
     Tenta ler o CSV normalmente; se não achar 'timestamp' no header,
     procura a linha do cabeçalho real e relê a partir dali.
-    Compatível com pandas 1.1.x (usa error_bad_lines/warn_bad_lines).
+    Compatível com pandas mais novos (usa on_bad_lines).
     """
     if not os.path.exists(path):
         raise FileNotFoundError("Arquivo não encontrado: {}".format(path))
 
-    # 1� tentativa: leitura direta
+    # 1� tentativa: leitura direta — usa on_bad_lines para versões recentes do pandas
     try:
-        df = pd.read_csv(path, dtype=str, error_bad_lines=False, warn_bad_lines=False)
+        df = pd.read_csv(path, dtype=str, on_bad_lines='skip')
         if "timestamp" in df.columns:
             return df
+    except TypeError:
+        # fallback caso pandas muito antigo — tenta sem on_bad_lines
+        try:
+            df = pd.read_csv(path, dtype=str)
+            if "timestamp" in df.columns:
+                return df
+        except Exception:
+            pass
     except Exception:
         pass
 
@@ -67,12 +76,19 @@ def _read_raw_csv(path):
     if header_idx is not None:
         # Releitura a partir do header real
         buf = io.StringIO("\n".join(lines[header_idx:]))
-        df = pd.read_csv(buf, dtype=str, error_bad_lines=False, warn_bad_lines=False)
+        # usa on_bad_lines se disponível
+        try:
+            df = pd.read_csv(buf, dtype=str, on_bad_lines='skip')
+        except TypeError:
+            df = pd.read_csv(buf, dtype=str)
         return df
 
     # Último recurso: ler sem header e atribuir colunas conhecidas pelo que existir
     buf = io.StringIO("\n".join(lines))
-    tmp = pd.read_csv(buf, header=None, dtype=str, error_bad_lines=False, warn_bad_lines=False)
+    try:
+        tmp = pd.read_csv(buf, header=None, dtype=str, on_bad_lines='skip')
+    except TypeError:
+        tmp = pd.read_csv(buf, header=None, dtype=str)
     # elimina linhas totalmente vazias
     tmp = tmp.dropna(how="all")
     # limita colunas conhecidas

@@ -5,11 +5,12 @@ services:
     image: eclipse-mosquitto:2
     container_name: mosquitto
     ports:
-      - "1883:1883"     # MQTT
-      - "9001:9001"     # Websocket (opcional)
+      - "8883:8883"     # MQTT over TLS
     volumes:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
       - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/certs:/mosquitto/certs
+      - ./mosquitto/passwd:/mosquitto/config/passwd
     restart: always
 
   nodered:
